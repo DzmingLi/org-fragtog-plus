@@ -1,0 +1,67 @@
+#+TITLE: org-fragtog-plus
+#+OPTIONS: toc:nil
+
+Reveal Org formulas when the cursor enters them and restore their previews
+when it leaves. Supports buffer-local preview backends, with Org's built-in
+LaTeX preview as the default. Requires Emacs 30.2+ and Org 9.7.11+.
+
+* Installation
+
+#+begin_src sh
+git clone https://github.com/DzmingLi/org-fragtog-plus.git
+cd org-fragtog-plus
+nix build
+#+end_src
+
+Install =result/org-fragtog-plus-0.1.0.tar= with =M-x package-install-file=.
+Alternatively, add the checkout to =load-path= or configure your package manager
+to install =org-fragtog-plus.el=.
+
+#+begin_src emacs-lisp
+(require 'org-fragtog-plus)
+(add-hook 'org-mode-hook #'org-fragtog-plus-mode)
+#+end_src
+
+LaTeX rendering uses Org's existing preview configuration and requires its
+external rendering tools. This package neither depends on nor advises the
+original org-fragtog; do not enable both modes in the same buffer.
+
+* Behavior
+
+=org-fragtog-plus-delay= sets the idle delay before revealing source, in seconds
+(default 0). Disabling the mode clears its backend's previews and pending work.
+The mode renders formulas as the cursor leaves them; initial whole-buffer
+rendering is handled by the backend's manual preview command.
+
+* Typst
+
+Install [[https://github.com/DzmingLi/org-typst-math][org-typst-math]] separately for Typst rendering and export.
+The Typst adapter belongs to that package; this repository has no Typst or
+Rust dependency.
+
+#+begin_src emacs-lisp
+(require 'org-typst-math)
+(require 'org-fragtog-plus)
+;; In an Org buffer using Typst math:
+(org-typst-math-mode 1)
+(org-fragtog-plus-mode 1)
+(org-typst-preview)
+#+end_src
+
+* Backend interface
+
+=org-fragtog-plus-backend= is a buffer-local function accepting ACTION and an
+optional FRAGMENT. Use =org-fragtog-plus-set-backend= to change it while the
+mode is active; the previous backend's state is cleared first.
+
+| ACTION | Behavior |
+|--------+----------|
+| fragment | Return the Org element at point, or nil, excluding trailing whitespace |
+| show | Show FRAGMENT's preview; repeated calls must not toggle it off |
+| hide | Reveal FRAGMENT's source; repeated calls must not toggle it back |
+| clear | Clear buffer previews and invalidate pending results |
+
+Fragments use :begin and the length of :value to describe their source extent.
+Asynchronous backends should keep the formula at point visible as source when
+installing results. The backend owns image creation, caching, and diagnostics;
+org-fragtog-plus owns cursor tracking, delays, and lifecycle management.
