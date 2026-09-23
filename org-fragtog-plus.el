@@ -85,6 +85,17 @@ active buffer's backend."
           (goto-char old)
           (when-let* ((previous (funcall org-fragtog-plus-backend 'fragment)))
             (funcall org-fragtog-plus-backend 'show previous))))
+      ;; Completing a delimiter can create a fragment with point already
+      ;; outside it.  It was never the current fragment, so the normal
+      ;; leave-fragment transition above cannot show it.
+      (when (and (not fragment)
+                 (not (equal tick org-fragtog-plus--tick))
+                 (> (point) (point-min)))
+        (save-excursion
+          (backward-char)
+          (when-let* ((completed (funcall org-fragtog-plus-backend 'fragment)))
+            (unless (equal old (org-element-property :begin completed))
+              (funcall org-fragtog-plus-backend 'show completed)))))
       (when org-fragtog-plus--start (set-marker org-fragtog-plus--start nil))
       (setq org-fragtog-plus--start (and start (copy-marker start))
             org-fragtog-plus--tick tick)
